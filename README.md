@@ -1,56 +1,69 @@
-# Welcome to your Expo app 👋
+# DARE Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Cyberpunk social trading-card game client for **DARE** — the third client of the
+DARE FastAPI backend (alongside the web SPA and the Telegram bot).
 
-## Get started
+P0 scope: auth, wallet, card browsing, card detail with variable rolls, open
+challenge creation, session view with live timer + actions, proof feed, profile.
 
-1. Install dependencies
+## API
 
-   ```bash
-   npm install
-   ```
+Base: `https://antifatypes.com/dare/api/v1` (Bearer JWT auth, configured in
+`src/api/client.ts`).
 
-2. Start the app
+## Stack
 
-   ```bash
-   npx expo start
-   ```
+- Expo SDK 57, TypeScript (strict), expo-router v57 (typed routes)
+- react-native-web (web export, static SPA output)
+- expo-secure-store for the JWT (localStorage fallback on web)
+- expo-image, expo-splash-screen, expo-status-bar, expo-system-ui
 
-In the output, you'll find options to open the app in a
+No other runtime dependencies were added for P0.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Setup
 
 ```bash
-npm run reset-project
+npm install
+npm start          # expo start (press i / a / w for ios / android / web)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Scripts
 
-### Other setup steps
+| Command                  | What it does                                      |
+| ------------------------ | ------------------------------------------------- |
+| `npm start`              | Start the Expo dev server                         |
+| `npm run web`            | Start on web                                      |
+| `npx tsc --noEmit`       | Typecheck (must be clean)                         |
+| `npx expo export --platform web` | Production web bundle → `dist/`            |
+| `node scripts/smoke.mjs` | Live API smoke test (registers a throwaway user)  |
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Structure
 
-## Learn more
+```
+src/
+  app/
+    _layout.tsx            # root: AuthProvider, dark ThemeProvider, auth redirect
+    (auth)/login.tsx       # email_or_username + password
+    (auth)/register.tsx    # username + email + password
+    (tabs)/index.tsx       # Home: greeting, wallet, active challenges, random dare
+    (tabs)/browse.tsx      # deck/category filters + search over /dares
+    (tabs)/feed.tsx        # GET /proofs/feed viral reels
+    (tabs)/profile.tsx     # /auth/me stats + wallet summary + sign out
+    [dareId].tsx           # card detail, roll variables, start open challenge
+    [sessionId].tsx        # session status, countdown, accept/decline/roll/timer
+  api/                     # typed client for every backend endpoint
+  context/AuthProvider.tsx # JWT + user session (secure store, web fallback)
+  theme/                   # design tokens + rarity color map
+  components/ui.tsx        # Card, Button, Badge, Meter, Chip, ...
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Notes
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Rarity values from the live API come back **mixed case** (`Epic`, `common`,
+  `flare`, `spark`, `mythic`, …) — always normalize with `toLowerCase()` before
+  mapping colors (see `src/theme/index.ts`).
+- Card `image_url` values are relative; prefix with `https://antifatypes.com`
+  via `assetUrl()`.
+- Starting a challenge from the app creates a **public/open** session
+  (`POST /sessions` without `recipient_id`), staking the card's default bounty
+  in escrow. Named-opponent matching arrives in P1.
