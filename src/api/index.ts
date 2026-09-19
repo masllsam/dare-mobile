@@ -76,6 +76,28 @@ export function rollDareVariables(
   });
 }
 
+export interface CardUnlockResult {
+  success: boolean;
+  dare_id: number;
+  title?: string | null;
+  rarity?: string | null;
+  clout_spent: number;
+  new_balance: number;
+  is_owned: boolean;
+  quantity?: number;
+  unlocked_at?: string | null;
+  message?: string | null;
+}
+
+/** Unlock a dare card by spending calibrated Clout (price by rarity). */
+export function unlockDare(dareId: number, token: string): Promise<CardUnlockResult> {
+  return apiRequest<CardUnlockResult>(`/dares/${dareId}/unlock`, {
+    method: 'POST',
+    token,
+    body: {},
+  });
+}
+
 // ---------- Decks ----------
 
 export function listDecks(): Promise<Deck[]> {

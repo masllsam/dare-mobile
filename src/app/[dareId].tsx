@@ -22,7 +22,7 @@ import { Colors, Spacing, withAlpha, rarityColor, rarityLabel } from '@/theme';
 export default function DareDetailScreen() {
   const { dareId } = useLocalSearchParams<{ dareId?: string }>();
   const router = useRouter();
-  const { user, token } = useAuth();
+  const { user, token, refreshUser } = useAuth();
 
   const [dare, setDare] = useState<Dare | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export default function DareDetailScreen() {
   const [rolling, setRolling] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
 
   const id = dareId ? Number(dareId) : NaN;
 
@@ -85,6 +86,22 @@ export default function DareDetailScreen() {
       setStarting(false);
     }
   }, [dare, token, rolled, router]);
+
+  const onUnlock = useCallback(async () => {
+    if (!dare || !token) return;
+    setUnlocking(true);
+    setStartError(null);
+    try {
+      await api.unlockDare(dare.id, token);
+      const fresh = await api.getDare(dare.id, token);
+      setDare(fresh);
+      void refreshUser().catch(() => {});
+    } catch (e) {
+      setStartError(errorMessage(e));
+    } finally {
+      setUnlocking(false);
+    }
+  }, [dare, token, refreshUser]);
 
   const variableEntries = useMemo(
     () =>
@@ -230,14 +247,20 @@ export default function DareDetailScreen() {
               ) : (
                 <>
                   <Button
+                    label={`🔓 Unlock card · ${dare.clout_price ?? '??'} ⚡`}
+                    onPress={onUnlock}
+                    loading={unlocking}
+                    variant="subtle"
+                  />
+                  <Button
                     label="Start challenge"
                     onPress={onOpenChallenge}
                     loading={starting}
-                    variant="subtle"
+                    disabled
                   />
                   <Text style={{ color: Colors.textFaint, fontSize: 12, textAlign: 'center', lineHeight: 17 }}>
-                    You don’t own this card yet. Opening a challenge with it stakes your card as the
-                    ante — you’ll risk it if you lose.
+                    You don’t own this card yet — the backend rejects challenges with unowned
+                    cards. Unlock it with Clout first, then start the challenge.
                   </Text>
                 </>
               )}

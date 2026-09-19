@@ -49,6 +49,14 @@ function formatDetail(detail: unknown): string {
       .join(' · ');
   }
   if (detail && typeof detail === 'object') {
+    // FastAPI custom dicts, e.g. Clout shortfall: {detail, required, available, shortfall}
+    const d = detail as Record<string, unknown>;
+    if (typeof d.detail === 'string') {
+      if (typeof d.shortfall === 'number') {
+        return `Not enough Energy: need ⚡ ${d.required} but you're short ⚡ ${d.shortfall}. Claim your daily or buy a pack first.`;
+      }
+      return d.detail;
+    }
     try {
       return JSON.stringify(detail);
     } catch {
